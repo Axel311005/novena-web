@@ -13,18 +13,17 @@ async function bootstrap() {
     rawBody: false,
   });
 
-
   const port = process.env.PORT ?? 3000;
   const isProd = process.env.STAGE === 'prod';
-  
+
   const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5175',
+    'https://novena-sma.netlify.app',
     `http://localhost:${port}`, // Permitir el mismo servidor (para Swagger)
     // Agregar aquí otros orígenes permitidos en producción
     // 'https://tudominio.com',
   ];
-
 
   app.enableCors({
     origin: (origin, callback) => {
@@ -93,13 +92,12 @@ async function bootstrap() {
       },
     }),
   );
-  
+
   // Filtros globales de excepciones (comentados hasta que se implementen)
   // app.useGlobalFilters(
   //   new ValidationExceptionFilter(),
   //   new GlobalExceptionFilter(),
   // );
-
 
   const config = new DocumentBuilder()
     .setTitle('Novena RESTFul API')
@@ -124,7 +122,7 @@ async function bootstrap() {
       persistAuthorization: true, // Mantiene el token después de refrescar la página
     },
   });
-  
+
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
