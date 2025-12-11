@@ -13,7 +13,7 @@ import { AsistenciaService } from './asistencia.service';
 import { CreateAsistenciaDto, UpdateAsistenciaDto } from './dto';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { User } from '../auth/entities/user.entity';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { Auth } from '../auth/decorators';
 import { ValidRoles } from '../auth/interfaces/valid-roles';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -27,6 +27,34 @@ export class AsistenciaController {
   @Post()
   @Auth(ValidRoles.admin, ValidRoles.apuntador)
   @ApiOperation({ summary: 'Crear un nuevo registro de asistencia' })
+  @ApiResponse({
+    status: 201,
+    description: 'Asistencia creada exitosamente',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'El niño ya tiene un registro de asistencia. Use el endpoint de actualización para modificar la asistencia existente.',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'El niño ya tiene un registro de asistencia registrado' },
+        error: { type: 'string', example: 'Asistencia ya existe' },
+        details: {
+          type: 'object',
+          properties: {
+            kidId: { type: 'number', example: 1 },
+            nombre: { type: 'string', example: 'Juan Carlos Pérez García' },
+            asistenciaId: { type: 'number', example: 5 },
+            message: { type: 'string', example: 'Para modificar la asistencia, use el endpoint PATCH /api/asistencias/:id' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Niño no encontrado',
+  })
   create(
     @Body() createAsistenciaDto: CreateAsistenciaDto,
     @GetUser() user: User,

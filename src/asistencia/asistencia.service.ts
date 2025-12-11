@@ -42,9 +42,25 @@ export class AsistenciaService {
 
       // Verificar que el niño no tenga ya un registro de asistencia
       if (kid.asistencia) {
-        throw new BadRequestException(
-          `El niño con id ${createAsistenciaDto.kidId} ya tiene un registro de asistencia. Use el endpoint de actualización para modificar la asistencia existente.`,
-        );
+        const nombreCompleto = [
+          kid.primerNombre,
+          kid.segundoNombre,
+          kid.primerApellido,
+          kid.segundoApellido,
+        ]
+          .filter(Boolean)
+          .join(' ') || 'el niño';
+
+        throw new BadRequestException({
+          message: `El niño ya tiene un registro de asistencia registrado`,
+          error: 'Asistencia ya existe',
+          details: {
+            kidId: kid.id,
+            nombre: nombreCompleto,
+            asistenciaId: kid.asistencia.id,
+            message: 'Para modificar la asistencia, use el endpoint PATCH /api/asistencias/:id',
+          },
+        });
       }
 
       const asistencia = this.asistenciaRepository.create({
