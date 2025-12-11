@@ -31,11 +31,19 @@ export class AsistenciaService {
       // Verificar que el niño existe
       const kid = await this.kidRepository.findOne({
         where: { id: createAsistenciaDto.kidId },
+        relations: ['asistencia'],
       });
 
       if (!kid) {
         throw new NotFoundException(
           `Niño con id ${createAsistenciaDto.kidId} no encontrado`,
+        );
+      }
+
+      // Verificar que el niño no tenga ya un registro de asistencia
+      if (kid.asistencia) {
+        throw new BadRequestException(
+          `El niño con id ${createAsistenciaDto.kidId} ya tiene un registro de asistencia. Use el endpoint de actualización para modificar la asistencia existente.`,
         );
       }
 
@@ -47,7 +55,7 @@ export class AsistenciaService {
 
       return await this.asistenciaRepository.save(asistencia);
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
       this.logger.error('Error al crear asistencia:', error);
@@ -71,12 +79,13 @@ export class AsistenciaService {
       .leftJoinAndSelect('asistencia.createdBy', 'createdBy')
       .leftJoinAndSelect('asistencia.updatedBy', 'updatedBy');
 
-    // Aplicar búsqueda si se proporciona el parámetro q (buscar por nombre del niño)
-    // Buscar en campos que pueden ser null
+    // Aplicar búsqueda si se proporciona el parámetro q (buscar por nombre o edad del niño)
+    // Buscar en campos que pueden ser null y en la edad
     if (q) {
+      const searchTerm = `%${q.trim()}%`;
       queryBuilder.where(
-        '(COALESCE(kid.primerNombre, \'\') ILIKE :q OR COALESCE(kid.segundoNombre, \'\') ILIKE :q OR COALESCE(kid.primerApellido, \'\') ILIKE :q OR COALESCE(kid.segundoApellido, \'\') ILIKE :q)',
-        { q: `%${q}%` },
+        '(COALESCE(kid.primerNombre, \'\') ILIKE :q OR COALESCE(kid.segundoNombre, \'\') ILIKE :q OR COALESCE(kid.primerApellido, \'\') ILIKE :q OR COALESCE(kid.segundoApellido, \'\') ILIKE :q OR CAST(kid.edad AS TEXT) LIKE :q)',
+        { q: searchTerm },
       );
     }
 
@@ -111,8 +120,8 @@ export class AsistenciaService {
     return asistencia;
   }
 
-  async findByKidId(kidId: number): Promise<Asistencia[]> {
-    return await this.asistenciaRepository.find({
+  async findByKidId(kidId: number): Promise<Asistencia | null> {
+    return await this.asistenciaRepository.findOne({
       where: { kidId },
       relations: ['kid', 'createdBy', 'updatedBy'],
     });

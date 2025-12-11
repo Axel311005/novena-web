@@ -35,14 +35,14 @@ export class StatsService {
     const totalKids = await this.kidRepository.count();
     const totalAsistencias = await this.asistenciaRepository.count();
 
-    // Obtener todos los niños con sus asistencias
+    // Obtener todos los niños con su asistencia
     const kids = await this.kidRepository.find({
-      relations: ['asistencias'],
+      relations: ['asistencia'],
     });
 
-    // Calcular niños con al menos una asistencia
+    // Calcular niños con asistencia
     const kidsWithAttendance = kids.filter(
-      (kid) => kid.asistencias && kid.asistencias.length > 0,
+      (kid) => kid.asistencia !== null && kid.asistencia !== undefined,
     ).length;
 
     // Calcular el promedio de días asistidos
@@ -109,11 +109,11 @@ export class StatsService {
    */
   async getKidsWithoutAttendance() {
     const kids = await this.kidRepository.find({
-      relations: ['asistencias'],
+      relations: ['asistencia'],
     });
 
     const kidsWithoutAttendance = kids.filter(
-      (kid) => !kid.asistencias || kid.asistencias.length === 0,
+      (kid) => !kid.asistencia || kid.asistencia === null,
     );
 
     return {
@@ -137,15 +137,15 @@ export class StatsService {
   async getKidStats(kidId: number) {
     const kid = await this.kidRepository.findOne({
       where: { id: kidId },
-      relations: ['asistencias'],
+      relations: ['asistencia'],
     });
 
     if (!kid) {
       throw new NotFoundException(`Niño con id ${kidId} no encontrado`);
     }
 
-    const asistencias = kid.asistencias || [];
-    const totalAsistencias = asistencias.length;
+    const asistencia = kid.asistencia;
+    const hasAsistencia = asistencia !== null && asistencia !== undefined;
 
     // Calcular días totales asistidos
     let totalDaysAttended = 0;
@@ -161,22 +161,20 @@ export class StatsService {
       day9: 0,
     };
 
-    asistencias.forEach((asistencia) => {
-      const daysInThisRecord = this.countDaysAttended(asistencia);
-      totalDaysAttended += daysInThisRecord;
+    if (hasAsistencia) {
+      totalDaysAttended = this.countDaysAttended(asistencia);
 
       for (let day = 1; day <= 9; day++) {
         const dayKey = `day${day}` as keyof Asistencia;
         if (asistencia[dayKey] === true) {
-          daysBreakdown[`day${day}` as keyof typeof daysBreakdown]++;
+          daysBreakdown[`day${day}` as keyof typeof daysBreakdown] = 1;
         }
       }
-    });
+    }
 
-    const averageDaysPerRecord =
-      totalAsistencias > 0
-        ? (totalDaysAttended / totalAsistencias).toFixed(1)
-        : '0.0';
+    const attendanceRate = hasAsistencia && totalDaysAttended > 0 
+      ? ((totalDaysAttended / 9) * 100).toFixed(1) 
+      : '0.0';
 
     return {
       kid: {
@@ -189,13 +187,12 @@ export class StatsService {
         sexo: kid.sexo,
       },
       stats: {
-        totalAsistencias,
+        hasAsistencia,
         totalDaysAttended,
-        averageDaysPerRecord: parseFloat(averageDaysPerRecord),
         daysBreakdown,
-        attendanceRate: totalDaysAttended > 0 ? ((totalDaysAttended / 9) * 100).toFixed(1) : '0.0',
+        attendanceRate: parseFloat(attendanceRate),
       },
-      asistencias: asistencias.map((asistencia) => ({
+      asistencia: hasAsistencia ? {
         id: asistencia.id,
         day1: asistencia.day1,
         day2: asistencia.day2,
@@ -208,7 +205,7 @@ export class StatsService {
         day9: asistencia.day9,
         createdAt: asistencia.createdAt,
         updatedAt: asistencia.updatedAt,
-      })),
+      } : null,
     };
   }
 
@@ -217,7 +214,7 @@ export class StatsService {
    */
   async getAttendanceSummary() {
     const kids = await this.kidRepository.find({
-      relations: ['asistencias'],
+      relations: ['asistencia'],
     });
 
     const allAsistencias = await this.asistenciaRepository.find();
@@ -226,7 +223,7 @@ export class StatsService {
     const totalKids = kids.length;
     const totalAsistencias = allAsistencias.length;
     const kidsWithAttendance = kids.filter(
-      (kid) => kid.asistencias && kid.asistencias.length > 0,
+      (kid) => kid.asistencia !== null && kid.asistencia !== undefined,
     ).length;
     const kidsWithoutAttendance = totalKids - kidsWithAttendance;
 
@@ -273,11 +270,11 @@ export class StatsService {
     // Niños con mejor asistencia (top 5)
     const kidsWithBestAttendance = kids
       .map((kid) => {
-        const kidAsistencias = kid.asistencias || [];
+        const kidAsistencia = kid.asistencia;
         let daysAttended = 0;
-        kidAsistencias.forEach((asistencia) => {
-          daysAttended += this.countDaysAttended(asistencia);
-        });
+        if (kidAsistencia) {
+          daysAttended = this.countDaysAttended(kidAsistencia);
+        }
         return {
           kid: {
             id: kid.id,
@@ -287,7 +284,6 @@ export class StatsService {
             segundoApellido: kid.segundoApellido,
           },
           totalDaysAttended: daysAttended,
-          totalRecords: kidAsistencias.length,
         };
       })
       .sort((a, b) => b.totalDaysAttended - a.totalDaysAttended)

@@ -38,7 +38,7 @@ export class AsistenciaController {
   @Auth(ValidRoles.admin, ValidRoles.apuntador)
   @ApiOperation({
     summary: 'Obtener todos los registros de asistencia',
-    description: 'Soporta paginación (limit, offset), búsqueda por parámetro q (nombre del niño) y filtro por kidId',
+    description: 'Soporta paginación (limit, offset), búsqueda por parámetro q (nombre o edad del niño) y filtro por kidId',
   })
   @ApiQuery({
     name: 'kidId',
@@ -46,12 +46,16 @@ export class AsistenciaController {
     type: Number,
     description: 'Filtrar asistencias por ID de niño',
   })
-  findAll(
+  async findAll(
     @Query() paginationDto: PaginationQueryDto,
     @Query('kidId') kidId?: string,
   ) {
     if (kidId) {
-      return this.asistenciaService.findByKidId(parseInt(kidId, 10));
+      const asistencia = await this.asistenciaService.findByKidId(parseInt(kidId, 10));
+      if (!asistencia) {
+        return { data: null, message: 'El niño no tiene registro de asistencia' };
+      }
+      return { data: asistencia };
     }
     return this.asistenciaService.findAll(paginationDto);
   }

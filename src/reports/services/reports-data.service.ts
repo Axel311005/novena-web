@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Kid } from '../../kid/entities/kid.entity';
 import { Asistencia } from '../../asistencia/entities/asistencia.entity';
-import { ReportData, KidWithAsistencias } from '../interfaces/report-data.interface';
+import { ReportData, KidWithAsistencia } from '../interfaces/report-data.interface';
 
 @Injectable()
 export class ReportsDataService {
@@ -18,9 +18,9 @@ export class ReportsDataService {
 
   async getReportData(): Promise<ReportData> {
     try {
-      // Obtener todos los niños con sus asistencias, ordenados por edad (de menor a mayor)
+      // Obtener todos los niños con su asistencia, ordenados por edad (de menor a mayor)
       const kids = await this.kidRepository.find({
-        relations: ['createdBy', 'updatedBy', 'asistencias'],
+        relations: ['createdBy', 'updatedBy', 'asistencia'],
         order: {
           edad: 'ASC', // De menor a mayor edad
           primerApellido: 'ASC', // Si tienen la misma edad, ordenar por apellido
@@ -28,24 +28,16 @@ export class ReportsDataService {
         },
       });
 
-      // Para cada niño, obtener todas sus asistencias ordenadas
-      // Usamos las asistencias que ya vienen cargadas en la relación y las ordenamos
-      const kidsWithAsistencias: KidWithAsistencias[] = kids.map((kid) => {
-        // Ordenar las asistencias por fecha de creación (más recientes primero)
-        const asistencias = (kid.asistencias || []).sort((a, b) => {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-
-        return {
-          ...kid,
-          asistencias,
-        };
-      });
+      // Mapear a la interfaz con asistencia (OneToOne)
+      const kidsWithAsistencia: KidWithAsistencia[] = kids.map((kid) => ({
+        ...kid,
+        asistencia: kid.asistencia || null,
+      }));
 
       return {
-        kids: kidsWithAsistencias,
+        kids: kidsWithAsistencia,
         generatedAt: new Date(),
-        totalKids: kidsWithAsistencias.length,
+        totalKids: kidsWithAsistencia.length,
       };
     } catch (error) {
       this.logger.error('Error al obtener datos para el reporte:', error);

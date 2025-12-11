@@ -132,10 +132,7 @@ export class PdfReportService {
         currentY += config.headerHeight;
       }
 
-      const asistencia =
-        kid.asistencias && kid.asistencias.length > 0
-          ? kid.asistencias[0]
-          : null;
+      const asistencia = kid.asistencia || null;
 
       const totalAsistencias = asistencia
         ? [

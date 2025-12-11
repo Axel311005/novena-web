@@ -102,9 +102,7 @@ export class ExcelReportService {
 
   private addData(worksheet: ExcelJS.Worksheet, data: ReportData): void {
     data.kids.forEach((kid, index) => {
-      const asistencia = kid.asistencias && kid.asistencias.length > 0 
-        ? kid.asistencias[0] 
-        : null;
+      const asistencia = kid.asistencia || null;
 
       const totalAsistencias = asistencia
         ? [

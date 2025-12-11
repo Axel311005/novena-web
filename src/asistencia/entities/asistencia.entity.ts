@@ -2,11 +2,13 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  OneToOne,
   ManyToOne,
   JoinColumn,
   RelationId,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { Kid } from '../../kid/entities/kid.entity';
 import { User } from '../../auth/entities/user.entity';
@@ -16,14 +18,15 @@ export class Asistencia {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Kid, (kid) => kid.asistencias, { nullable: false })
+  @OneToOne(() => Kid, (kid) => kid.asistencia, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'kid_id' })
+  @Index('UQ_asistencia_kid_id', { unique: true })
   kid: Kid;
 
   @RelationId((asistencia: Asistencia) => asistencia.kid)
   kidId: number;
 
-  @Column({ default: true })
+  @Column({ default: false })
   day1: boolean;
 
   @Column({ default: false })

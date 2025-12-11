@@ -1,12 +1,12 @@
 import { Kid } from '../../kid/entities/kid.entity';
 import { Asistencia } from '../../asistencia/entities/asistencia.entity';
 
-export interface KidWithAsistencias extends Kid {
-  asistencias: Asistencia[];
+export interface KidWithAsistencia extends Omit<Kid, 'asistencia'> {
+  asistencia: Asistencia | null;
 }
 
 export interface ReportData {
-  kids: KidWithAsistencias[];
+  kids: KidWithAsistencia[];
   generatedAt: Date;
   totalKids: number;
 }

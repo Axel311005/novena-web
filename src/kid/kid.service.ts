@@ -32,7 +32,11 @@ export class KidService {
         createdBy: user,
       });
 
-      return await this.kidRepository.save(kid);
+      const savedKid = await this.kidRepository.save(kid);
+
+      // El trigger de la base de datos creará automáticamente la asistencia
+      // Recargar el niño con la asistencia creada por el trigger
+      return await this.findOne(savedKid.id);
     } catch (error) {
       this.logger.error('Error al crear niño:', error);
       throw new BadRequestException('Error al crear el registro del niño');
@@ -44,31 +48,33 @@ export class KidService {
   ): Promise<{ data: Kid[]; total: number; limit: number; offset: number }> {
     const { limit = 10, offset = 0, q } = paginationDto;
 
+    // QueryBuilder para obtener los datos con relaciones
     const queryBuilder = this.kidRepository
       .createQueryBuilder('kid')
       .leftJoinAndSelect('kid.createdBy', 'createdBy')
       .leftJoinAndSelect('kid.updatedBy', 'updatedBy')
-      .leftJoinAndSelect('kid.asistencias', 'asistencias');
+      .leftJoinAndSelect('kid.asistencia', 'asistencia');
+
+    // QueryBuilder para contar (sin relaciones ni ordenamiento)
+    const countQueryBuilder = this.kidRepository
+      .createQueryBuilder('kid');
 
     // Aplicar búsqueda si se proporciona el parámetro q
     // Buscar en campos que pueden ser null
     if (q) {
-      queryBuilder.where(
-        '(COALESCE(kid.primerNombre, \'\') ILIKE :q OR COALESCE(kid.segundoNombre, \'\') ILIKE :q OR COALESCE(kid.primerApellido, \'\') ILIKE :q OR COALESCE(kid.segundoApellido, \'\') ILIKE :q)',
-        { q: `%${q}%` },
-      );
+      const searchCondition = '(COALESCE(kid.primerNombre, \'\') ILIKE :q OR COALESCE(kid.segundoNombre, \'\') ILIKE :q OR COALESCE(kid.primerApellido, \'\') ILIKE :q OR COALESCE(kid.segundoApellido, \'\') ILIKE :q)';
+      queryBuilder.where(searchCondition, { q: `%${q}%` });
+      countQueryBuilder.where(searchCondition, { q: `%${q}%` });
     }
 
-    // Obtener el total antes de aplicar paginación
-    const total = await queryBuilder.getCount();
+    // Ordenar por el último registro creado (más reciente primero)
+    queryBuilder.orderBy('kid.createdAt', 'DESC');
 
-    // Aplicar paginación
-    // Ordenar considerando que los campos pueden ser null
-    // Usar ordenamiento simple - PostgreSQL maneja nulls correctamente
+    // Obtener el total antes de aplicar paginación
+    const total = await countQueryBuilder.getCount();
+
+    // Aplicar paginación y obtener los datos
     const data = await queryBuilder
-      .orderBy('kid.edad', 'ASC')
-      .addOrderBy('kid.primerApellido', 'ASC')
-      .addOrderBy('kid.primerNombre', 'ASC')
       .skip(offset)
       .take(limit)
       .getMany();
@@ -84,7 +90,7 @@ export class KidService {
   async findOne(id: number): Promise<Kid> {
     const kid = await this.kidRepository.findOne({
       where: { id },
-      relations: ['createdBy', 'updatedBy', 'asistencias'],
+      relations: ['createdBy', 'updatedBy', 'asistencia'],
     });
 
     if (!kid) {

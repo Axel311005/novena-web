@@ -3,7 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
-  OneToMany,
+  OneToOne,
   JoinColumn,
   RelationId,
   CreateDateColumn,
@@ -59,7 +59,7 @@ export class Kid {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @OneToMany(() => Asistencia, (asistencia) => asistencia.kid)
-  asistencias: Asistencia[];
+  @OneToOne(() => Asistencia, (asistencia) => asistencia.kid, { cascade: true })
+  asistencia: Asistencia;
 }
 
