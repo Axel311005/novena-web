@@ -97,5 +97,41 @@ export class StatsController {
   getAttendanceSummary() {
     return this.statsService.getAttendanceSummary();
   }
+
+  @Get('by-age')
+  @Auth(ValidRoles.admin, ValidRoles.apuntador)
+  @ApiOperation({ 
+    summary: 'Obtener conteo de niños por edad',
+    description: 'Retorna la cantidad de niños agrupados por edad'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estadísticas por edad obtenidas exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        byAge: {
+          type: 'object',
+          description: 'Objeto con edad como clave y conteo como valor',
+          example: { '5': 3, '6': 5, '7': 2 },
+        },
+        byAgeArray: {
+          type: 'array',
+          description: 'Array ordenado por edad con objetos {edad, count}',
+          items: {
+            type: 'object',
+            properties: {
+              edad: { type: 'number', example: 5 },
+              count: { type: 'number', example: 3 },
+            },
+          },
+        },
+        totalKids: { type: 'number', example: 10 },
+      },
+    },
+  })
+  getKidsByAge() {
+    return this.statsService.getKidsByAge();
+  }
 }
 

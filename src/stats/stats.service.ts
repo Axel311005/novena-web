@@ -210,6 +210,38 @@ export class StatsService {
   }
 
   /**
+   * Obtiene el conteo de niños agrupados por edad
+   */
+  async getKidsByAge() {
+    const kids = await this.kidRepository.find({
+      select: ['edad'],
+    });
+
+    // Agrupar por edad
+    const ageGroups: Record<number, number> = {};
+    kids.forEach((kid) => {
+      const age = kid.edad;
+      ageGroups[age] = (ageGroups[age] || 0) + 1;
+    });
+
+    // Convertir a array ordenado por edad
+    const ageArray = Object.entries(ageGroups)
+      .map(([age, count]) => ({
+        edad: parseInt(age),
+        count,
+      }))
+      .sort((a, b) => a.edad - b.edad);
+
+    const totalKids = kids.length;
+
+    return {
+      byAge: ageGroups,
+      byAgeArray: ageArray,
+      totalKids,
+    };
+  }
+
+  /**
    * Obtiene un resumen general de asistencia con información detallada
    */
   async getAttendanceSummary() {
