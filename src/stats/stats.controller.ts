@@ -133,5 +133,41 @@ export class StatsController {
   getKidsByAge() {
     return this.statsService.getKidsByAge();
   }
+
+  @Get('by-sex')
+  @Auth(ValidRoles.admin, ValidRoles.apuntador)
+  @ApiOperation({ 
+    summary: 'Obtener conteo de niños por sexo',
+    description: 'Retorna la cantidad de niños agrupados por sexo (masculino/femenino)'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estadísticas por sexo obtenidas exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        bySex: {
+          type: 'object',
+          description: 'Objeto con sexo como clave y conteo como valor',
+          example: { 'masculino': 15, 'femenino': 12 },
+        },
+        bySexArray: {
+          type: 'array',
+          description: 'Array con objetos {sexo, count}',
+          items: {
+            type: 'object',
+            properties: {
+              sexo: { type: 'string', example: 'masculino' },
+              count: { type: 'number', example: 15 },
+            },
+          },
+        },
+        totalKids: { type: 'number', example: 27 },
+      },
+    },
+  })
+  getKidsBySex() {
+    return this.statsService.getKidsBySex();
+  }
 }
 

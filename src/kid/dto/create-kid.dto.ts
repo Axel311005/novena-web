@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
   IsInt,
-  IsPositive,
+  Min,
   IsOptional,
   MinLength,
   MaxLength,
@@ -54,7 +54,7 @@ export class CreateKidDto {
 
   @ApiProperty({ description: 'Edad del niño', example: 8 })
   @IsInt()
-  @IsPositive()
+  @Min(0, { message: 'La edad debe ser mayor o igual a 0' })
   edad: number;
 
   @ApiProperty({

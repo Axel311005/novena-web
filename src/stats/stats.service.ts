@@ -242,6 +242,42 @@ export class StatsService {
   }
 
   /**
+   * Obtiene el conteo de niños agrupados por sexo
+   */
+  async getKidsBySex() {
+    const kids = await this.kidRepository.find({
+      select: ['sexo'],
+    });
+
+    // Agrupar por sexo
+    const sexGroups: Record<string, number> = {
+      masculino: 0,
+      femenino: 0,
+    };
+
+    kids.forEach((kid) => {
+      const sexo = kid.sexo;
+      if (sexGroups[sexo] !== undefined) {
+        sexGroups[sexo]++;
+      }
+    });
+
+    // Convertir a array
+    const sexArray = Object.entries(sexGroups).map(([sexo, count]) => ({
+      sexo,
+      count,
+    }));
+
+    const totalKids = kids.length;
+
+    return {
+      bySex: sexGroups,
+      bySexArray: sexArray,
+      totalKids,
+    };
+  }
+
+  /**
    * Obtiene un resumen general de asistencia con información detallada
    */
   async getAttendanceSummary() {
