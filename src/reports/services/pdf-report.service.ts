@@ -51,28 +51,14 @@ export class PdfReportService {
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', (error) => reject(error));
 
+        // Rastrear número de páginas manualmente
+        const pageInfo = { current: 1, total: 1 };
+
         // Encabezado
         this.addHeader(doc, data);
 
-        // Tabla de datos
-        this.addTable(doc, data);
-
-        // Pie de página - agregar justo antes de cerrar, solo en la última página
-        const pageCount = doc.bufferedPageRange().count;
-        if (pageCount > 0) {
-          const lastPageIndex = pageCount - 1;
-          doc.switchToPage(lastPageIndex);
-          const footerY = doc.page.height - 25;
-          doc
-            .fontSize(7)
-            .font('Helvetica')
-            .text(
-              `Página ${lastPageIndex + 1} de ${pageCount}`,
-              doc.page.width / 2,
-              footerY,
-              { align: 'center', width: doc.page.width - 60 },
-            );
-        }
+        // Tabla de datos - pasamos referencias para actualizar el conteo de páginas
+        this.addTable(doc, data, pageInfo);
 
         doc.end();
       } catch (error) {
@@ -110,7 +96,7 @@ export class PdfReportService {
       .moveDown(0.8);
   }
 
-  private addTable(doc: PDFDoc, data: ReportData): void {
+  private addTable(doc: PDFDoc, data: ReportData, pageInfo: { current: number; total: number }): void {
     const config = this.tableConfig;
     let currentY = config.startY;
 
@@ -123,9 +109,12 @@ export class PdfReportService {
 
     // Dibujar filas de datos
     data.kids.forEach((kid, index) => {
-      // Verificar si necesitamos una nueva página (dejar más espacio para el pie de página)
+      // Verificar si necesitamos una nueva página
       if (currentY > doc.page.height - 60) {
         doc.addPage();
+        pageInfo.current++;
+        pageInfo.total = pageInfo.current;
+        
         this.addHeader(doc, data);
         currentY = config.startY;
         this.drawTableHeader(doc, columns, currentY);
@@ -406,6 +395,19 @@ export class PdfReportService {
       .stroke();
   }
 
+
+  private addFooter(doc: PDFDoc, currentPage: number, totalPages: number): void {
+    const footerY = doc.page.height - 25;
+    doc
+      .fontSize(7)
+      .font('Helvetica')
+      .text(
+        `Página ${currentPage} de ${totalPages}`,
+        doc.page.width / 2,
+        footerY,
+        { align: 'center', width: doc.page.width - 60 },
+      );
+  }
 
   private formatDate(date: Date): string {
     return new Intl.DateTimeFormat('es-NI', {
