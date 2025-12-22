@@ -16,16 +16,29 @@ export class ReportsDataService {
     private readonly asistenciaRepository: Repository<Asistencia>,
   ) {}
 
+  /**
+   * Calcula el total de asistencias contando los días asistidos (day1-day9)
+   */
+  private calculateTotalAsistencias(asistencia: Asistencia | null): number {
+    if (!asistencia) return 0;
+    return [
+      asistencia.day1,
+      asistencia.day2,
+      asistencia.day3,
+      asistencia.day4,
+      asistencia.day5,
+      asistencia.day6,
+      asistencia.day7,
+      asistencia.day8,
+      asistencia.day9,
+    ].filter(Boolean).length;
+  }
+
   async getReportData(): Promise<ReportData> {
     try {
-      // Obtener todos los niños con su asistencia, ordenados por edad (de menor a mayor)
+      // Obtener todos los niños con su asistencia
       const kids = await this.kidRepository.find({
         relations: ['createdBy', 'updatedBy', 'asistencia'],
-        order: {
-          edad: 'ASC', // De menor a mayor edad
-          primerApellido: 'ASC', // Si tienen la misma edad, ordenar por apellido
-          primerNombre: 'ASC', // Si tienen la misma edad y apellido, ordenar por nombre
-        },
       });
 
       // Mapear a la interfaz con asistencia (OneToOne)
@@ -33,6 +46,19 @@ export class ReportsDataService {
         ...kid,
         asistencia: kid.asistencia || null,
       }));
+
+      // Ordenar: primero por edad (menor a mayor), luego por total de asistencias (mayor a menor)
+      kidsWithAsistencia.sort((a, b) => {
+        // Primero ordenar por edad (menor a mayor)
+        if (a.edad !== b.edad) {
+          return a.edad - b.edad;
+        }
+        
+        // Si tienen la misma edad, ordenar por total de asistencias (mayor a menor)
+        const totalA = this.calculateTotalAsistencias(a.asistencia);
+        const totalB = this.calculateTotalAsistencias(b.asistencia);
+        return totalB - totalA;
+      });
 
       return {
         kids: kidsWithAsistencia,
@@ -45,4 +71,3 @@ export class ReportsDataService {
     }
   }
 }
-
