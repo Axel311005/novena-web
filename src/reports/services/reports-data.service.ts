@@ -47,17 +47,18 @@ export class ReportsDataService {
         asistencia: kid.asistencia || null,
       }));
 
-      // Ordenar: primero por edad (menor a mayor), luego por total de asistencias (mayor a menor)
+      // Ordenar: primero por total de asistencias (mayor a menor), luego por edad (menor a mayor)
       kidsWithAsistencia.sort((a, b) => {
-        // Primero ordenar por edad (menor a mayor)
-        if (a.edad !== b.edad) {
-          return a.edad - b.edad;
-        }
-        
-        // Si tienen la misma edad, ordenar por total de asistencias (mayor a menor)
         const totalA = this.calculateTotalAsistencias(a.asistencia);
         const totalB = this.calculateTotalAsistencias(b.asistencia);
-        return totalB - totalA;
+
+        // Primero ordenar por total de asistencias (mayor a menor)
+        if (totalA !== totalB) {
+          return totalB - totalA;
+        }
+
+        // Si tienen el mismo total, ordenar por edad (menor a mayor)
+        return a.edad - b.edad;
       });
 
       return {
